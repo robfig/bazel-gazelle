@@ -2822,6 +2822,160 @@ go_library(
 	})
 }
 
+// TestJS tests the JS rule generation.
+func TestJS(t *testing.T) {
+	files := []testtools.FileSpec{
+		{
+			Path: "WORKSPACE",
+		}, {
+			Path:    "BUILD.bazel",
+			Content: "# gazelle:js_prefix corp",
+		}, {
+			Path:    "corp.js",
+			Content: `goog.provide('corp')`,
+		}, {
+			Path: "i18n.js",
+			Content: `goog.provide("corp.i18n");
+goog.provide('corp.msg');
+
+goog.require('corp');
+goog.require('goog.strings');
+goog.require('goog.i18n.messageformat');
+`,
+		},
+		{
+			Path: "ui/widget.jsx",
+			Content: `
+goog.module('corp.ui.widget');
+
+goog.require('corp.i18n');
+goog.require('goog.ui.component');
+`,
+		},
+		{
+			Path: "ui/widget_test.jsx",
+			Content: `
+goog.module('corp.ui.widget');
+
+goog.require('corp');
+const msg = goog.require('corp.msg');
+goog.require('goog.ui.component');
+var testtools = goog.require('corp.ui.widget.testtools');
+		`,
+		},
+		{
+			Path:    "ui/widget_test.html",
+			Content: `<!DOCTYPE html><html></html>`,
+		},
+		{
+			Path: "app/app.js",
+			Content: `
+goog.module('corp.app.App');
+
+const msg = goog.require('corp.msg');
+goog.require('corp');
+const widget = goog.require('corp.ui.widget');
+		`,
+		},
+		{
+			Path: "app/app_test.js",
+			Content: `
+goog.module('corp.app.AppTest');
+
+const app = goog.require('corp.app.App');
+		`,
+		},
+	}
+	dir, cleanup := testtools.CreateFiles(t, files)
+	defer cleanup()
+
+	if err := runGazelle(dir, []string{}); err != nil {
+		t.Fatal(err)
+	}
+
+	testtools.CheckFiles(t, dir, []testtools.FileSpec{
+		{
+			Path: "BUILD.bazel",
+			Content: `
+load("@io_bazel_rules_closure//closure:defs.bzl", "closure_js_library")
+
+# gazelle:js_prefix corp
+
+closure_js_library(
+    name = "corp",
+    srcs = ["corp.js"],
+    visibility = ["//visibility:public"],
+)
+
+closure_js_library(
+    name = "i18n",
+    srcs = ["i18n.js"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":corp",
+        "@io_bazel_rules_closure//closure/library/i18n:messageformat",
+        "@io_bazel_rules_closure//closure/library/strings",
+    ],
+)
+`,
+		},
+		{
+			Path: "ui/BUILD.bazel",
+			Content: `
+load("@io_bazel_rules_closure//closure:defs.bzl", "closure_jsx_library", "closure_jsx_test")
+
+closure_jsx_library(
+    name = "widget",
+    srcs = ["widget.jsx"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//:i18n",
+        "@io_bazel_rules_closure//closure/library/ui:component",
+    ],
+)
+
+closure_jsx_test(
+    name = "widget_test",
+    srcs = ["widget_test.jsx"],
+    compilation_level = "ADVANCED",
+    html = "widget_test.html",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//:corp",
+        "//:i18n",
+        "@io_bazel_rules_closure//closure/library/ui:component",
+    ],
+)
+`,
+		},
+		{
+			Path: "app/BUILD.bazel",
+			Content: `
+load("@io_bazel_rules_closure//closure:defs.bzl", "closure_js_library", "closure_js_test")
+
+closure_js_library(
+    name = "app",
+    srcs = ["app.js"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//:corp",
+        "//:i18n",
+        "//ui:widget",
+    ],
+)
+
+closure_js_test(
+    name = "app_test",
+    srcs = ["app_test.js"],
+    compilation_level = "ADVANCED",
+    visibility = ["//visibility:public"],
+    deps = [":app"],
+)
+`,
+		},
+	})
+}
+
 // TODO(jayconrod): more tests
 //   run in fix mode in testdata directories to create new files
 //   run in diff mode in testdata directories to update existing files (no change)

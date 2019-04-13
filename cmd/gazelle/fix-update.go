@@ -249,6 +249,7 @@ func runFixUpdate(cmd command, args []string) error {
 	kinds := make(map[string]rule.KindInfo)
 	loads := genericLoads
 	for _, lang := range languages {
+		fmt.Println(lang.Name())
 		cexts = append(cexts, lang)
 		for kind, info := range lang.Kinds() {
 			mrslv.AddBuiltin(kind, lang)
@@ -355,6 +356,9 @@ func runFixUpdate(cmd command, args []string) error {
 		// Add library rules to the dependency resolution table.
 		if c.IndexLibraries {
 			for _, r := range f.Rules {
+				if dir == "/Users/robfig/alpha/js/yext" {
+					fmt.Println(r.Kind(), r.Name())
+				}
 				ruleIndex.AddRule(c, r, f)
 			}
 		}
@@ -369,7 +373,8 @@ func runFixUpdate(cmd command, args []string) error {
 	for _, v := range visits {
 		for i, r := range v.rules {
 			from := label.New(c.RepoName, v.pkgRel, r.Name())
-			mrslv.Resolver(r, v.pkgRel).Resolve(v.c, ruleIndex, rc, r, v.imports[i], from)
+			rslvr := mrslv.Resolver(r, v.pkgRel)
+			rslvr.Resolve(v.c, ruleIndex, rc, r, v.imports[i], from)
 		}
 		merger.MergeFile(v.file, v.empty, v.rules, merger.PostResolve,
 			unionKindInfoMaps(kinds, v.mappedKindInfo))

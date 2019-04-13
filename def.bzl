@@ -43,6 +43,7 @@ gazelle_binary = _gazelle_binary
 DEFAULT_LANGUAGES = [
     "@bazel_gazelle//language/proto:go_default_library",
     "@bazel_gazelle//language/go:go_default_library",
+    "@bazel_gazelle//language/js:go_default_library",
 ]
 
 def _gazelle_runner_impl(ctx):
