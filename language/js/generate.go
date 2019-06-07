@@ -87,8 +87,7 @@ func generateTest(js fileInfo) *rule.Rule {
 		js.name[:len(js.name)-len(filepath.Ext(js.name))])
 	r.SetAttr("srcs", []string{js.name})
 	r.SetAttr("compilation_level", "ADVANCED")
-	// TODO: entry_points needs to contain the list of test functions to avoid
-	// ADVANCED removing all the code.
+	r.SetAttr("entry_points", js.provides)
 	r.SetAttr("visibility", []string{"//visibility:public"})
 	return r
 }
