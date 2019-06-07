@@ -2938,6 +2938,7 @@ closure_jsx_test(
     name = "widget_test",
     srcs = ["widget_test.jsx"],
     compilation_level = "ADVANCED",
+    entry_points = ["corp.ui.widget"],
     html = "widget_test.html",
     visibility = ["//visibility:public"],
     deps = [
@@ -2968,6 +2969,7 @@ closure_js_test(
     name = "app_test",
     srcs = ["app_test.js"],
     compilation_level = "ADVANCED",
+    entry_points = ["corp.app.AppTest"],
     visibility = ["//visibility:public"],
     deps = [":app"],
 )
