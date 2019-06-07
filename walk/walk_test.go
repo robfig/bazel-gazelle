@@ -170,6 +170,9 @@ func TestExcludeFiles(t *testing.T) {
 # gazelle:exclude sub/b.go
 # gazelle:exclude ign
 # gazelle:exclude gen
+# gazelle:exclude */ignore.go
+# gazelle:exclude */*/ignore.go
+# gazelle:exclude */*/*/ignore.go
 
 gen(
     name = "x",
@@ -182,6 +185,7 @@ gen(
 		{Path: "_blank"},
 		{Path: "sub/b.go"},
 		{Path: "ign/bad"},
+		{Path: "a/b/ignore.go"},
 	})
 	defer cleanup()
 

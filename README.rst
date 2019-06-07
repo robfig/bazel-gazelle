@@ -530,7 +530,7 @@ The following directives are recognized:
 | a directory, Gazelle won't recurse into it. The path may refer to something                |
 | withinin a subdirectory, for example, a testdata directory somewhere in a                  |
 | vendor tree. This directive may be repeated to exclude multiple paths, one                 |
-| per line.                                                                                  |
+| per line. Glob expressions accepted by "path/filepath".Match may be used.                  |
 +---------------------------------------------------+----------------------------------------+
 | :direc:`# gazelle:follow path`                    | n/a                                    |
 +---------------------------------------------------+----------------------------------------+

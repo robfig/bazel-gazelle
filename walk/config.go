@@ -17,11 +17,13 @@ package walk
 
 import (
 	"flag"
+	"log"
 	"path"
 
 	"github.com/bazelbuild/bazel-gazelle/config"
 	gzflag "github.com/bazelbuild/bazel-gazelle/flag"
 	"github.com/bazelbuild/bazel-gazelle/rule"
+	"github.com/bmatcuk/doublestar"
 )
 
 // TODO(#472): store location information to validate each exclude. They
@@ -46,8 +48,10 @@ func (wc *walkConfig) isExcluded(rel, base string) bool {
 	}
 	f := path.Join(rel, base)
 	for _, x := range wc.excludes {
-		if f == x {
+		if matched, err := doublestar.Match(x, f); matched {
 			return true
+		} else if err != nil {
+			log.Println("invalid exclude pattern:", x)
 		}
 	}
 	return false
