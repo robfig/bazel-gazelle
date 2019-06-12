@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/repo"
 	"github.com/bazelbuild/bazel-gazelle/resolve"
 	"github.com/bazelbuild/bazel-gazelle/rule"
+	"github.com/bazelbuild/bazel-gazelle/language/js/closure_library"
 )
 
 func (_ *jsLang) Imports(_ *config.Config, r *rule.Rule, f *rule.File) []resolve.ImportSpec {
@@ -107,43 +107,20 @@ func isClosureLibrary(imp string) bool {
 	return strings.HasPrefix(imp, "goog.")
 }
 
-// The packages under third_party don't match the pattern.
-// For example: goog.require('goog.dom.query');
-// is provided by:
-//   @io_bazel_rules_closure//closure/library/third_party/goog/dojo/dom:query
-//
-// Not sure the best way to handle this in a way that doesn't require updating,
-// but that set of code is small and slowly-changing enough that special cases
-// seem ok.
-//
-// TODO: Generate the full set of current targets.
-
-var thirdPartyClosureProvides = map[string]label.Label{
-	"goog.dom.query": label.New("io_bazel_rules_closure",
-		"third_party/closure/library/dojo/dom", "query"),
-}
-
 func resolveClosureLibrary(imp string) label.Label {
 	if !strings.HasPrefix(imp, "goog.") {
 		panic(fmt.Errorf("expected a closure library import: %v", imp))
 	}
-	if l, ok := thirdPartyClosureProvides[imp]; ok {
+	if target, ok := closure_library.PROVIDE_TO_TARGET[imp]; ok {
+		l, err := label.Parse("@io_bazel_rules_closure" + target)
+		if err != nil {
+			log.Printf("error parsing label %q from closure_library: %v", target, err)
+			return label.NoLabel
+		}
 		return l
 	}
-	imp = imp[len("goog."):]
-	imp = strings.Replace(imp, ".", "/", -1)
-	imp = strings.ToLower(imp)
-
-	var pkg, base string
-	if !strings.Contains(imp, "/") {
-		pkg = imp
-		base = path.Base(imp)
-	} else {
-		pkg = path.Dir(imp)
-		base = path.Base(imp)
-	}
-
-	return label.New("io_bazel_rules_closure", path.Join("closure/library", pkg), base)
+	log.Println("closure library import not found:", imp)
+	return label.NoLabel
 }
 
 func resolveWithIndexJs(ix *resolve.RuleIndex, imp string, from label.Label) (label.Label, error) {

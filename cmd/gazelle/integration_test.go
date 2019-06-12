@@ -2196,8 +2196,8 @@ func TestJS(t *testing.T) {
 goog.provide('corp.msg');
 
 goog.require('corp');
-goog.require('goog.strings');
-goog.require('goog.i18n.messageformat');
+goog.require('goog.string');
+goog.require('goog.i18n.MessageFormat');
 `,
 		},
 		{
@@ -2206,17 +2206,17 @@ goog.require('goog.i18n.messageformat');
 goog.module('corp.ui.widget');
 
 goog.require('corp.i18n');
-goog.require('goog.ui.component');
+goog.require('goog.ui.Component');
 `,
 		},
 		{
 			Path: "ui/widget_test.jsx",
 			Content: `
-goog.module('corp.ui.widget');
+goog.module('corp.ui.widget.test');
 
 goog.require('corp');
 const msg = goog.require('corp.msg');
-goog.require('goog.ui.component');
+goog.require('goog.ui.Component');
 var testtools = goog.require('corp.ui.widget.testtools');
 		`,
 		},
@@ -2271,7 +2271,7 @@ closure_js_library(
     deps = [
         ":corp",
         "@io_bazel_rules_closure//closure/library/i18n:messageformat",
-        "@io_bazel_rules_closure//closure/library/strings",
+        "@io_bazel_rules_closure//closure/library/string",
     ],
 )
 `,
@@ -2295,7 +2295,7 @@ closure_jsx_test(
     name = "widget_test",
     srcs = ["widget_test.jsx"],
     compilation_level = "ADVANCED",
-    entry_points = ["corp.ui.widget"],
+    entry_points = ["corp.ui.widget.test"],
     html = "widget_test.html",
     visibility = ["//visibility:public"],
     deps = [
