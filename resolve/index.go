@@ -218,7 +218,13 @@ func (ix *RuleIndex) FindRulesByImport(imp ImportSpec, lang string) []FindResult
 	matches := ix.importMap[imp]
 	results := make([]FindResult, 0, len(matches))
 	for _, m := range matches {
-		if ix.mrslv(m.rule, "").Name() != lang {
+		resolver := ix.mrslv(m.rule, m.label.Pkg)
+		if resolver == nil {
+			log.Println("no resolver found:", m.rule.Kind(), m.label)
+			continue
+		}
+		if resolver.Name() != lang {
+			log.Printf("resolver %q is not for the expected lang %q", resolver.Name(), lang)
 			continue
 		}
 		results = append(results, FindResult{

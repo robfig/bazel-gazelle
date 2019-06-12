@@ -2616,6 +2616,16 @@ go_library(
 		}, {
 			Path:    "enabled/multiple_mappings/multiple_mappings.go",
 			Content: `package main`,
+		}, {
+			Path:    "disabled/resolve_deps/resolve_deps.go",
+			Content: `package resolve_deps
+
+import _ "example.com/mapkind/enabled"
+import _ "example.com/mapkind/enabled/existing_rules/mapped"
+import _ "example.com/mapkind/disabled"
+import _ "example.com/mapkind/multiple_mappings"
+import _ "example.com/mapkind/enabled/overridden"
+`,
 		},
 	}
 	dir, cleanup := testtools.CreateFiles(t, files)
@@ -2760,6 +2770,26 @@ go_binary(
     name = "multiple_mappings",
     embed = [":go_default_library"],
     visibility = ["//visibility:public"],
+)
+`,
+		},
+		{
+			Path: "disabled/resolve_deps/BUILD.bazel",
+			Content: `
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["resolve_deps.go"],
+    importpath = "example.com/mapkind/disabled/resolve_deps",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//disabled:go_default_library",
+        "//enabled:go_default_library",
+        "//enabled/existing_rules/mapped:go_default_library",
+        "//enabled/overridden:go_default_library",
+        "//multiple_mappings:go_default_library",
+    ],
 )
 `,
 		},
