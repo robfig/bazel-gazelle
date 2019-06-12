@@ -2272,6 +2272,32 @@ goog.module('corp.app.AppTest');
 const app = goog.require('corp.app.App');
 		`,
 		},
+		{
+			Path: "multifile/file1.js",
+			Content: `goog.module('corp.multifile.file1');
+goog.require('corp.msg');
+goog.require('goog.string');
+`,
+		},
+		{
+			Path: "multifile/file2.js",
+			Content: `goog.module('corp.multifile.file1');
+goog.require('corp.ui.widget');
+goog.require('goog.dom.query');
+`,
+		},
+		{
+			Path: "multifile/BUILD.bazel",
+			Content: `
+load("@io_bazel_rules_closure//closure:defs.bzl", "closure_js_library")
+
+closure_js_library(
+    name = "multifile",
+    srcs = ["file1.js", "file2.js"],
+    visibility = ["//visibility:public"],
+)
+`,
+		},
 	}
 	dir, cleanup := testtools.CreateFiles(t, files)
 	defer cleanup()
@@ -2359,6 +2385,27 @@ closure_js_test(
     entry_points = ["corp.app.AppTest"],
     visibility = ["//visibility:public"],
     deps = [":app"],
+)
+`,
+		},
+		{
+			Path: "multifile/BUILD.bazel",
+			Content: `
+load("@io_bazel_rules_closure//closure:defs.bzl", "closure_js_library")
+
+closure_js_library(
+    name = "multifile",
+    srcs = [
+        "file1.js",
+        "file2.js",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//:i18n",
+        "//ui:widget",
+        "@io_bazel_rules_closure//closure/library/string",
+        "@io_bazel_rules_closure//third_party/closure/library/dojo/dom:query",
+    ],
 )
 `,
 		},

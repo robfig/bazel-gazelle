@@ -12,6 +12,30 @@ import (
 
 func (gl *jsLang) GenerateRules(args language.GenerateArgs) language.GenerateResult {
 	var _ = getJsConfig(args.Config)
+
+	// Handle existing rules that include multiple files by generating our
+	// version of that same grouping.
+	type multiRule struct {
+		kind, name              string
+		srcs, provides, imports []string
+	}
+	var existingRules []*rule.Rule
+	if args.File != nil {
+		existingRules = args.File.Rules
+	}
+	var multiFileRules = make(map[string]*multiRule)
+	var multiFileRulesGen []*multiRule
+	for _, r := range existingRules {
+		if !isJsLibrary(r.Kind()) {
+			continue
+		}
+		genrule := &multiRule{kind: r.Kind(), name: r.Name()}
+		for _, src := range r.AttrStrings("srcs") {
+			multiFileRules[src] = genrule
+		}
+		multiFileRulesGen = append(multiFileRulesGen, genrule)
+	}
+
 	var rules []*rule.Rule
 	var imports []interface{}
 	var testFileInfos = make(map[string][]fileInfo)
@@ -23,9 +47,19 @@ func (gl *jsLang) GenerateRules(args language.GenerateArgs) language.GenerateRes
 		}
 
 		// Deal with tests separately since they involve multiple files.
+		// TODO: Make this work with multi-file groupings.
 		if fi.isTest {
 			name := testBaseName(fi.name)
 			testFileInfos[name] = append(testFileInfos[name], fi)
+			continue
+		}
+
+		// If this file is part of a multi-file rule, merge in its properties
+		// instead of creating a new rule.
+		if r, ok := multiFileRules[fi.name]; ok {
+			r.srcs = append(r.srcs, filename)
+			r.provides = append(r.provides, fi.provides...)
+			r.imports = append(r.imports, fi.imports...)
 			continue
 		}
 
@@ -49,6 +83,21 @@ func (gl *jsLang) GenerateRules(args language.GenerateArgs) language.GenerateRes
 		default:
 			log.Println("unexpected number of test sources:", name)
 		}
+	}
+
+	// Generate the multi-file rules.
+	for _, r := range multiFileRulesGen {
+		if len(r.srcs) == 0 {
+			continue
+		}
+		rule := rule.NewRule(r.kind, r.name)
+		rule.SetAttr("srcs", r.srcs)
+		rules = append(rules, rule)
+		imports = append(imports, fileInfo{
+			name:     "rule:" + r.name,
+			provides: r.provides,
+			imports:  r.imports,
+		})
 	}
 
 	return language.GenerateResult{
