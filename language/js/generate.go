@@ -29,9 +29,18 @@ func (gl *jsLang) GenerateRules(args language.GenerateArgs) language.GenerateRes
 		if !isJsLibrary(r.Kind()) {
 			continue
 		}
+		srcs := r.AttrStrings("srcs")
+		if len(srcs) <= 1 {
+			continue
+		}
 		genrule := &multiRule{kind: r.Kind(), name: r.Name()}
-		for _, src := range r.AttrStrings("srcs") {
+		for _, src := range srcs {
 			multiFileRules[src] = genrule
+			// if any of the srcs are in a sub-directory, add them to
+			// RegularFiles to be processed.
+			if strings.Contains(src, "/") {
+				args.RegularFiles = append(args.RegularFiles, src)
+			}
 		}
 		multiFileRulesGen = append(multiFileRulesGen, genrule)
 	}
@@ -56,7 +65,7 @@ func (gl *jsLang) GenerateRules(args language.GenerateArgs) language.GenerateRes
 
 		// If this file is part of a multi-file rule, merge in its properties
 		// instead of creating a new rule.
-		if r, ok := multiFileRules[fi.name]; ok {
+		if r, ok := multiFileRules[filename]; ok {
 			r.srcs = append(r.srcs, filename)
 			r.provides = append(r.provides, fi.provides...)
 			r.imports = append(r.imports, fi.imports...)
@@ -114,7 +123,7 @@ func testBaseName(name string) string {
 func generateLib(filename string) *rule.Rule {
 	jsOrJsx := filepath.Ext(filename)[1:]
 	r := rule.NewRule("closure_"+jsOrJsx+"_library",
-		filepath.Base(filename)[:len(filename)-len(filepath.Ext(filename))])
+		filename[:len(filename)-len(filepath.Ext(filename))])
 	r.SetAttr("srcs", []string{filename})
 	r.SetAttr("visibility", []string{"//visibility:public"})
 	return r
