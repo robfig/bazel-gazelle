@@ -14,7 +14,6 @@ func (gl *jsLang) GenerateRules(args language.GenerateArgs) language.GenerateRes
 	var _ = getJsConfig(args.Config)
 	var rules []*rule.Rule
 	var imports []interface{}
-	//fmt.Println("GenerateRules:", args)
 	var testFileInfos = make(map[string][]fileInfo)
 	sort.Strings(args.RegularFiles) // results in htmls first
 	for _, filename := range args.RegularFiles {
@@ -33,11 +32,8 @@ func (gl *jsLang) GenerateRules(args language.GenerateArgs) language.GenerateRes
 		// Create one closure_js[x]_library rule per non-test source file.
 		switch fi.ext {
 		case jsExt, jsxExt:
-			// fmt.Println("GenerateRules:", filename, fi)
-			// fmt.Println("	lib:", generateLib(filename))
 			rules = append(rules, generateLib(filename))
 			imports = append(imports, fi)
-			//fmt.Println(filename, "provides", fi.provides, "imports", fi.imports)
 		}
 	}
 

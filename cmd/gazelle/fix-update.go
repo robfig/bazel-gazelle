@@ -249,7 +249,6 @@ func runFixUpdate(cmd command, args []string) error {
 	kinds := make(map[string]rule.KindInfo)
 	loads := genericLoads
 	for _, lang := range languages {
-		fmt.Println(lang.Name())
 		cexts = append(cexts, lang)
 		for kind, info := range lang.Kinds() {
 			mrslv.AddBuiltin(kind, lang)
@@ -356,9 +355,6 @@ func runFixUpdate(cmd command, args []string) error {
 		// Add library rules to the dependency resolution table.
 		if c.IndexLibraries {
 			for _, r := range f.Rules {
-				if dir == "/Users/robfig/alpha/js/yext" {
-					fmt.Println(r.Kind(), r.Name())
-				}
 				ruleIndex.AddRule(c, r, f)
 			}
 		}

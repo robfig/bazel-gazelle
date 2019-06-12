@@ -88,6 +88,7 @@ func fileNameInfo(path_ string) fileInfo {
 }
 
 // TODO: handle goog.module.get()
+// TODO: handle ES6 modules
 
 var (
 	closureLibraryRepo = `com_google_javascript_closure_library`
