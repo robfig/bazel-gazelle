@@ -9,27 +9,29 @@ import (
 
 	"github.com/bazelbuild/bazel-gazelle/config"
 	"github.com/bazelbuild/bazel-gazelle/label"
+	"github.com/bazelbuild/bazel-gazelle/language/js/closure_library"
 	"github.com/bazelbuild/bazel-gazelle/repo"
 	"github.com/bazelbuild/bazel-gazelle/resolve"
 	"github.com/bazelbuild/bazel-gazelle/rule"
-	"github.com/bazelbuild/bazel-gazelle/language/js/closure_library"
 )
 
 func (_ *jsLang) Imports(_ *config.Config, r *rule.Rule, f *rule.File) []resolve.ImportSpec {
 	if !isJsLibrary(r.Kind()) {
 		return nil
 	}
+
 	// TODO: See how badly this performs, whether or not we need to capture the
 	// provides in the rule.
 	var provides []resolve.ImportSpec
 	for _, src := range r.AttrStrings("srcs") {
 		srcFilename := filepath.Join(filepath.Dir(f.Path), src)
 		fi := jsFileInfo(srcFilename)
-		fmt.Println(src, fi.provides)
 		for _, provide := range fi.provides {
 			provides = append(provides, resolve.ImportSpec{Lang: jsName, Imp: provide})
 		}
 	}
+
+	fmt.Println("Imports:", f.Pkg+":"+r.Name(), "provides:", provides)
 	return provides
 }
 
@@ -38,9 +40,10 @@ func (_ *jsLang) Embeds(r *rule.Rule, from label.Label) []label.Label {
 }
 
 func (gl *jsLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.RemoteCache, r *rule.Rule, importsRaw interface{}, from label.Label) {
-	fmt.Println(r.Kind(), r.Name(), importsRaw)
+	fmt.Println("Resolve:", from)
 	if importsRaw == nil {
 		// may not be set in tests.
+		fmt.Println(".. no requires")
 		return
 	}
 
@@ -55,6 +58,7 @@ func (gl *jsLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.Remo
 		if err != nil {
 			log.Print(err)
 		}
+		fmt.Println(".. requires ", imp, "=>", l)
 		if l == label.NoLabel {
 			continue
 		}
@@ -82,22 +86,18 @@ func resolveJs(c *config.Config, ix *resolve.RuleIndex, rc *repo.RemoteCache, r 
 		// this probably has to do something more complicated like indexing
 		// closure library and generating a file with that information.
 		return resolveClosureLibrary(imp), nil
-		// fmt.Println("Resolve:", imp, ":", label.New("io_bazel_rules_closure", path.Join("closure/library", fp), path.Base(fp)))
 	}
 
 	if l, ok := resolve.FindRuleWithOverride(c, resolve.ImportSpec{Lang: jsName, Imp: imp}, "js"); ok {
-		fmt.Println("Resolve:", imp, "FindRuleWithOverride:", l)
 		return l, nil
 	}
 
 	if l, err := resolveWithIndexJs(ix, imp, from); err == nil || err == skipImportError {
-		fmt.Println("Resolve:", imp, "WithIndex:", l)
 		return l, err
 	} else if err != notFoundError {
 		return label.NoLabel, err
 	}
 
-	fmt.Println("Resolve:", imp, "NotFound")
 	return label.NoLabel, nil
 	// return resolveExternal(gc.moduleMode, rc, imp)
 	// return resolveVendored(rc, imp)
@@ -164,6 +164,6 @@ func resolveWithIndexJs(ix *resolve.RuleIndex, imp string, from label.Label) (la
 // But, since this is unlikely to be merged, make the local (and easier) fix.
 // Require any mapped kinds to begin with "closure_js".
 func isJsLibrary(kind string) bool {
-//	return kind == "closure_js_library" || kind == "closure_jsx_library"
+	//	return kind == "closure_js_library" || kind == "closure_jsx_library"
 	return strings.HasPrefix(kind, "closure_js")
 }

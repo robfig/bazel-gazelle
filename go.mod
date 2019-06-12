@@ -3,6 +3,7 @@ module github.com/bazelbuild/bazel-gazelle
 require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/bazelbuild/buildtools v0.0.0-20190329162354-3f7be923c4b0
+	github.com/bmatcuk/doublestar v1.1.1
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/kr/pretty v0.1.0 // indirect
