@@ -151,6 +151,19 @@ func resolveWithIndexJs(ix *resolve.RuleIndex, imp string, from label.Label) (la
 	return bestMatch.Label, nil
 }
 
+// HACK: This might be called upon to recognize mapped kinds, which it does not
+// have the information to do.
+//
+// For example:
+//   gazelle:map_kind closure_js_library closure_js_thirdparty_library //tools/js/defs.bzl
+//
+// That causes Imports() to be invoked with r.Kind() == closure_js_thirdparty_library.
+// This is a bug. Language plugins like this are supposed to only see their builtin rule kinds,
+// and the surrounding code is supposed to handle the mappings.
+//
+// But, since this is unlikely to be merged, make the local (and easier) fix.
+// Require any mapped kinds to begin with "closure_js".
 func isJsLibrary(kind string) bool {
-	return kind == "closure_js_library" || kind == "closure_jsx_library"
+//	return kind == "closure_js_library" || kind == "closure_jsx_library"
+	return strings.HasPrefix(kind, "closure_js")
 }
