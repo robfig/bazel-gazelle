@@ -297,6 +297,10 @@ func runFixUpdate(cmd command, args []string) error {
 		for i, r := range v.rules {
 			from := label.New(c.RepoName, v.pkgRel, r.Name())
 			rslvr := mrslv.Resolver(r, v.pkgRel)
+			if rslvr == nil {
+				log.Println("resolver not found for", v.pkgRel, "rule", r.Kind(), r.Name())
+				continue
+			}
 			rslvr.Resolve(v.c, ruleIndex, rc, r, v.imports[i], from)
 		}
 		merger.MergeFile(v.file, v.empty, v.rules, merger.PostResolve,
