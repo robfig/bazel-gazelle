@@ -45,6 +45,8 @@ func (gl *jsLang) GenerateRules(args language.GenerateArgs) language.GenerateRes
 		multiFileRulesGen = append(multiFileRulesGen, genrule)
 	}
 
+	// Loop through each file in this package, read their info (what they
+	// provide & require), and generate a lib or test rule for it.
 	var rules []*rule.Rule
 	var imports []interface{}
 	var testFileInfos = make(map[string][]fileInfo)
