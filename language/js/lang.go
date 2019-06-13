@@ -1,26 +1,21 @@
 // Package js provides support for JS rules. It generates
 // closure_js_library and closure_js_test rules.
 //
-// Configuration
-//
-// JS rules support the flag -js_prefix and the directive # gazelle:js_prefix.
-//
 // Rule generation
 //
-// Currently, Gazelle generates one rule per file, in addition to a rule
-// containing all js named for the directory.
+// Currently, Gazelle generates one rule per file.
 //
 // Dependency resolution
 //
-// JS libraries are indexed by their goog.module / goog.provide declarations. If
-// an import doesn't match any known library, Gazelle guesses a name for it,
-// locally (if the import path is under the current prefix).
+// JS libraries are indexed by their goog.module / goog.provide declarations.
 //
-// Gazelle is aware of closure library and generates appropriate dependencies
+// Gazelle has an index of the closure library and generates appropriate dependencies
 // for imports.
 package js
 
 import "github.com/bazelbuild/bazel-gazelle/language"
+
+const verbose = false
 
 const jsName = "js"
 

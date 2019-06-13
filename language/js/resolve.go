@@ -20,8 +20,6 @@ func (_ *jsLang) Imports(_ *config.Config, r *rule.Rule, f *rule.File) []resolve
 		return nil
 	}
 
-	// TODO: See how badly this performs, whether or not we need to capture the
-	// provides in the rule.
 	var provides []resolve.ImportSpec
 	for _, src := range r.AttrStrings("srcs") {
 		srcFilename := filepath.Join(filepath.Dir(f.Path), src)
@@ -31,7 +29,9 @@ func (_ *jsLang) Imports(_ *config.Config, r *rule.Rule, f *rule.File) []resolve
 		}
 	}
 
-	fmt.Println("Imports:", f.Pkg+":"+r.Name(), "provides:", provides)
+	if verbose {
+		fmt.Println("Imports:", f.Pkg+":"+r.Name(), "provides:", provides)
+	}
 	return provides
 }
 
@@ -40,10 +40,11 @@ func (_ *jsLang) Embeds(r *rule.Rule, from label.Label) []label.Label {
 }
 
 func (gl *jsLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.RemoteCache, r *rule.Rule, importsRaw interface{}, from label.Label) {
-	fmt.Println("Resolve:", from)
+	if verbose {
+		fmt.Println("Resolve:", from)
+	}
 	if importsRaw == nil {
 		// may not be set in tests.
-		fmt.Println(".. no requires")
 		return
 	}
 
@@ -58,12 +59,13 @@ func (gl *jsLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.Remo
 		if err != nil {
 			log.Print(err)
 		}
-		fmt.Println(".. requires ", imp, "=>", l)
+		if verbose {
+			fmt.Println(".. requires ", imp, "=>", l)
+		}
 		if l == label.NoLabel {
 			continue
 		}
 		l = l.Rel(from.Repo, from.Pkg)
-		//		deps = append(deps, l.String())
 		depMap[l.String()] = struct{}{}
 	}
 	if len(depMap) > 0 {
@@ -80,11 +82,7 @@ var (
 )
 
 func resolveJs(c *config.Config, ix *resolve.RuleIndex, rc *repo.RemoteCache, r *rule.Rule, imp string, from label.Label) (label.Label, error) {
-	// gc := getJsConfig(c)
-
 	if isClosureLibrary(imp) {
-		// this probably has to do something more complicated like indexing
-		// closure library and generating a file with that information.
 		return resolveClosureLibrary(imp), nil
 	}
 
@@ -99,8 +97,6 @@ func resolveJs(c *config.Config, ix *resolve.RuleIndex, rc *repo.RemoteCache, r 
 	}
 
 	return label.NoLabel, nil
-	// return resolveExternal(gc.moduleMode, rc, imp)
-	// return resolveVendored(rc, imp)
 }
 
 func isClosureLibrary(imp string) bool {
