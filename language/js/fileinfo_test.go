@@ -121,7 +121,8 @@ goog.require('goog.i18n.messageformat');
 				t.Fatal(err)
 			}
 
-			got := jsFileInfo(path)
+			var jsc jsConfig
+			got := jsFileInfo(&jsc, path)
 			// Clear fields we don't care about for testing.
 			got = fileInfo{
 				provides: got.provides,

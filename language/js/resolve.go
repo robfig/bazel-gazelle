@@ -15,15 +15,16 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/rule"
 )
 
-func (_ *jsLang) Imports(_ *config.Config, r *rule.Rule, f *rule.File) []resolve.ImportSpec {
+func (_ *jsLang) Imports(cfg *config.Config, r *rule.Rule, f *rule.File) []resolve.ImportSpec {
 	if !isJsLibrary(r.Kind()) {
 		return nil
 	}
+	var jsc = getJsConfig(cfg)
 
 	var provides []resolve.ImportSpec
 	for _, src := range r.AttrStrings("srcs") {
 		srcFilename := filepath.Join(filepath.Dir(f.Path), src)
-		fi := jsFileInfo(srcFilename)
+		fi := jsFileInfo(jsc, srcFilename)
 		for _, provide := range fi.provides {
 			provides = append(provides, resolve.ImportSpec{Lang: jsName, Imp: provide})
 		}
@@ -51,7 +52,8 @@ func (gl *jsLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.Remo
 	fi := importsRaw.(fileInfo)
 	r.DelAttr("deps")
 
-	var deps []string
+	var deps []string = fi.deps
+
 	// TODO: Use an in-place algorithm instead without a map
 	var depMap = make(map[string]struct{})
 	for _, imp := range fi.imports {

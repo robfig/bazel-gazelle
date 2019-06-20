@@ -2,25 +2,36 @@ package js
 
 import (
 	"flag"
+	"log"
+	"regexp"
+	"strings"
 
 	"github.com/bazelbuild/bazel-gazelle/config"
-	gzflag "github.com/bazelbuild/bazel-gazelle/flag"
 	"github.com/bazelbuild/bazel-gazelle/rule"
 )
 
+type grepExtern struct {
+	token *regexp.Regexp // the search regex
+	label string         // the label to add to deps on matches
+}
+
+func newExternGrep(token, label string) grepExtern {
+	const b = `[^a-zA-Z0-9]`
+	return grepExtern{
+		token: regexp.MustCompile(b + regexp.QuoteMeta(token) + b),
+		label: label,
+	}
+}
+
+func (ge grepExtern) matches(file []byte) bool {
+	return ge.token.Match(file)
+}
+
 // jsConfig contains configuration values related to JS rules.
 type jsConfig struct {
-	// prefix is a prefix of an import path, used to generate importpath
-	// attributes. Set with # gazelle:js_prefix.
-	prefix string
-
-	// prefixRel is the package name of the directory where the prefix was set
-	// ("" for the root directory).
-	prefixRel string
-
-	// prefixSet indicates whether the prefix was set explicitly. It is an error
-	// to infer an importpath for a rule without setting the prefix.
-	prefixSet bool
+	// grepExterns is a (crude) mechanism that finds specified tokens in js or
+	// jsx files, and if found includes the given label in deps.
+	grepExterns []grepExtern
 }
 
 func newJsConfig() *jsConfig {
@@ -39,21 +50,12 @@ func (gc *jsConfig) clone() *jsConfig {
 
 func (_ *jsLang) KnownDirectives() []string {
 	return []string{
-		"js_prefix",
+		"js_grep_extern",
 	}
 }
 
 func (_ *jsLang) RegisterFlags(fs *flag.FlagSet, cmd string, c *config.Config) {
-	gc := newJsConfig()
-	switch cmd {
-	case "fix", "update":
-		fs.Var(
-			&gzflag.ExplicitFlag{Value: &gc.prefix, IsSet: &gc.prefixSet},
-			"js_prefix",
-			"prefix of import paths in the current workspace")
-
-	}
-	c.Exts[jsName] = gc
+	c.Exts[jsName] = newJsConfig()
 }
 
 func (_ *jsLang) CheckFlags(fs *flag.FlagSet, c *config.Config) error {
@@ -70,25 +72,15 @@ func (_ *jsLang) Configure(c *config.Config, rel string, f *rule.File) {
 	c.Exts[jsName] = gc
 
 	if f != nil {
-		setPrefix := func(prefix string) {
-			gc.prefix = prefix
-			gc.prefixSet = true
-			gc.prefixRel = rel
-		}
 		for _, d := range f.Directives {
 			switch d.Key {
-			case "js_prefix":
-				setPrefix(d.Value)
-			}
-		}
-		if !gc.prefixSet {
-			for _, r := range f.Rules {
-				switch r.Kind() {
-				case "gazelle":
-					if prefix := r.AttrString("js_prefix"); prefix != "" {
-						setPrefix(prefix)
-					}
+			case "js_grep_extern":
+				fields := strings.Fields(d.Value)
+				if len(fields) != 2 {
+					log.Println("expected 2 fields: `js_grep_extern (token) (extern label)")
+					continue
 				}
+				gc.grepExterns = append(gc.grepExterns, newExternGrep(fields[0], fields[1]))
 			}
 		}
 	}

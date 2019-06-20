@@ -35,6 +35,10 @@ type fileInfo struct {
 
 	// imports is a list of identifiers imported by a file.
 	imports []string
+
+	// deps is the list of rules that should be added to deps.
+	// these are from directives, bypassing the imports -> resolve flow.
+	deps []string
 }
 
 // ext indicates how a file should be treated, based on extension.
@@ -101,7 +105,7 @@ var (
 // jsFileInfo returns information about a .js file.
 // If the file can't be read, an error will be logged, and partial information
 // will be returned.
-func jsFileInfo(path string) fileInfo {
+func jsFileInfo(jsc *jsConfig, path string) fileInfo {
 	info := fileNameInfo(path)
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -124,5 +128,21 @@ func jsFileInfo(path string) fileInfo {
 		}
 	}
 	info.isTestOnly = testonlyRegexp.Match(b)
+	for _, ge := range jsc.grepExterns {
+		if ge.matches(b) {
+			if !contains(info.deps, ge.label) {
+				info.deps = append(info.deps, ge.label)
+			}
+		}
+	}
 	return info
+}
+
+func contains(sl []string, el string) bool {
+	for _, s := range sl {
+		if s == el {
+			return true
+		}
+	}
+	return false
 }

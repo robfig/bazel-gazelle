@@ -11,7 +11,7 @@ import (
 )
 
 func (gl *jsLang) GenerateRules(args language.GenerateArgs) language.GenerateResult {
-	var _ = getJsConfig(args.Config)
+	var jsc = getJsConfig(args.Config)
 
 	// Handle existing rules that include multiple files by generating our
 	// version of that same grouping.
@@ -52,7 +52,7 @@ func (gl *jsLang) GenerateRules(args language.GenerateArgs) language.GenerateRes
 	var testFileInfos = make(map[string][]fileInfo)
 	sort.Strings(args.RegularFiles) // results in htmls first
 	for _, filename := range args.RegularFiles {
-		var fi = jsFileInfo(filepath.Join(args.Dir, filename))
+		var fi = jsFileInfo(jsc, filepath.Join(args.Dir, filename))
 		if fi.ext == unknownExt {
 			continue
 		}
