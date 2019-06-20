@@ -2030,7 +2030,7 @@ go_library(
 			Path:    "enabled/multiple_mappings/multiple_mappings.go",
 			Content: `package main`,
 		}, {
-			Path:    "disabled/resolve_deps/resolve_deps.go",
+			Path: "disabled/resolve_deps/resolve_deps.go",
 			Content: `package resolve_deps
 
 import _ "example.com/mapkind/enabled"
@@ -2216,7 +2216,7 @@ func TestJS(t *testing.T) {
 			Path: "WORKSPACE",
 		}, {
 			Path:    "BUILD.bazel",
-			Content: "# gazelle:js_prefix corp",
+			Content: "# gazelle:js_grep_extern React //js/externs:react",
 		}, {
 			Path:    "corp.js",
 			Content: `goog.provide('corp')`,
@@ -2262,6 +2262,8 @@ goog.module('corp.app.App');
 const msg = goog.require('corp.msg');
 goog.require('corp');
 const widget = goog.require('corp.ui.widget');
+
+React.renderElement(widget);
 		`,
 		},
 		{
@@ -2312,7 +2314,7 @@ closure_js_library(
 			Content: `
 load("@io_bazel_rules_closure//closure:defs.bzl", "closure_js_library")
 
-# gazelle:js_prefix corp
+# gazelle:js_grep_extern React //js/externs:react
 
 closure_js_library(
     name = "corp",
@@ -2374,6 +2376,7 @@ closure_js_library(
     deps = [
         "//:corp",
         "//:i18n",
+        "//js/externs:react",
         "//ui:widget",
     ],
 )
