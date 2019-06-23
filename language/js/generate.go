@@ -41,8 +41,16 @@ func (gl *jsLang) GenerateRules(args language.GenerateArgs) language.GenerateRes
 			continue
 		}
 
+		// A srcs attr with a glob appears as an empty srcs.
+		// Just ignore those rules since there's nothing we can productively do.
+		srcsattr := r.AttrStrings("srcs")
+		if len(srcsattr) == 0 {
+			continue
+		}
+
+		// Collect the combined srcs, requires, deps for this rule.
 		var srcs, requires, deps []string
-		for _, src := range r.AttrStrings("srcs") {
+		for _, src := range srcsattr {
 			// Ignore this src if it's a label.
 			if strings.HasPrefix(src, ":") || strings.HasPrefix(src, "//") {
 				srcs = append(srcs, src)
