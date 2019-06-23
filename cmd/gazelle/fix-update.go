@@ -300,7 +300,7 @@ func runFixUpdate(cmd command, args []string) error {
 				Config:       c,
 				Dir:          dir,
 				Rel:          rel,
-				File:         f,
+				File:         inverseMapKinds(c, f),
 				Subdirs:      subdirs,
 				RegularFiles: regularFiles,
 				GenFiles:     genFiles,
@@ -322,12 +322,14 @@ func runFixUpdate(cmd command, args []string) error {
 			mappedKinds    []config.MappedKind
 			mappedKindInfo = make(map[string]rule.KindInfo)
 		)
-		for _, r := range gen {
-			if repl, ok := c.KindMap[r.Kind()]; ok {
-				mappedKindInfo[repl.KindName] = kinds[r.Kind()]
-				mappedKinds = append(mappedKinds, repl)
-				mrslv.MappedKind(rel, repl)
-				r.SetKind(repl.KindName)
+		for _, ruleset := range [][]*rule.Rule{gen, empty} {
+			for _, r := range ruleset {
+				if repl, ok := c.KindMap[r.Kind()]; ok {
+					mappedKindInfo[repl.KindName] = kinds[r.Kind()]
+					mappedKinds = append(mappedKinds, repl)
+					mrslv.MappedKind(rel, repl)
+					r.SetKind(repl.KindName)
+				}
 			}
 		}
 
@@ -583,4 +585,41 @@ func appendOrMergeKindMapping(mappedLoads []rule.LoadInfo, mappedKind config.Map
 		Name:    mappedKind.KindLoad,
 		Symbols: []string{mappedKind.KindName},
 	})
+}
+
+// inverseMapKinds returns a clone of the given file with all rules of a mapped
+// kind replaced with the original kind.
+// This is necessary to keep the language module ignorant of the kind mappings.
+func inverseMapKinds(c *config.Config, f *rule.File) *rule.File {
+	if f == nil {
+		return nil
+	}
+
+	// Generate a reverse lookup of applicable kind mappings.
+	var reverseMap = make(map[string]config.MappedKind)
+	for _, mappedKind := range c.KindMap {
+		reverseMap[mappedKind.KindName] = mappedKind
+	}
+
+	// Copy the rules, modifying any of a mapped kind.
+	var rules []*rule.Rule
+	for _, r := range f.Rules {
+		if repl, ok := reverseMap[r.Kind()]; ok {
+			newRule := *r
+			newRule.SetKind(repl.FromKind)
+			rules = append(rules, &newRule)
+		} else {
+			rules = append(rules, r)
+		}
+	}
+
+	// Create a clone of the file to avoid messing up other usages.
+	// This is not a perfect clone, it's just enough to provide rule info.
+	return &rule.File{
+		Pkg:        f.Pkg,
+		Path:       f.Path,
+		Directives: f.Directives,
+		Loads:      f.Loads,
+		Rules:      rules,
+	}
 }
