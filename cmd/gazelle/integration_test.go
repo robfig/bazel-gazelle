@@ -2332,6 +2332,12 @@ closure_js_library(
     srcs = ["file4.js", "deleted3.js"],
     visibility = ["//visibility:public"],
 )
+
+closure_js_library(
+    name = "globbed",
+    srcs = glob(["*.js"], exclude=["file1.js", "file2.js", "file3.js"]),
+    visibility = ["//visibility:public"],
+)
 `,
 		},
 		{
@@ -2483,6 +2489,19 @@ closure_js_library(
 closure_js_library(
     name = "deleted_some_multifile",
     srcs = ["file4.js"],
+    visibility = ["//visibility:public"],
+)
+
+closure_js_library(
+    name = "globbed",
+    srcs = glob(
+        ["*.js"],
+        exclude = [
+            "file1.js",
+            "file2.js",
+            "file3.js",
+        ],
+    ),
     visibility = ["//visibility:public"],
 )
 `,
