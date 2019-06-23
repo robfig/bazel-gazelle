@@ -2,6 +2,7 @@ package js
 
 import (
 	"log"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -125,6 +126,10 @@ func (gl *jsLang) GenerateRules(args language.GenerateArgs) language.GenerateRes
 	for name, fis := range testFileInfos {
 		switch len(fis) {
 		case 1:
+			if fis[0].ext == htmlExt {
+				log.Println("unused test html:", path.Join(args.Rel, fis[0].name))
+				continue
+			}
 			rules = append(rules, generateTest(fis[0]))
 			imports = append(imports, newImportInfo(fis[0]))
 		case 2:
