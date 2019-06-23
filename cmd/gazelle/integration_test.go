@@ -2918,27 +2918,61 @@ const app = goog.require('corp.app.App');
 		`,
 		},
 		{
-			Path: "multifile/file1.js",
-			Content: `goog.module('corp.multifile.file1');
+			Path: "existing/file1.js",
+			Content: `goog.module('corp.existing.file1');
 goog.require('corp.msg');
 goog.require('goog.string');
 `,
 		},
 		{
-			Path: "multifile/file2.js",
-			Content: `goog.module('corp.multifile.file1');
+			Path: "existing/file2.js",
+			Content: `goog.module('corp.existing.file1');
 goog.require('corp.ui.widget');
 goog.require('goog.dom.query');
 `,
 		},
 		{
-			Path: "multifile/BUILD.bazel",
+			Path: "existing/file3.js",
+			Content: `goog.module('corp.existing.file3');
+goog.require('goog.array');
+`,
+		},
+		{
+			Path:    "existing/file4.js",
+			Content: `goog.module('corp.existing.file4');`,
+		},
+		{
+			Path: "existing/BUILD.bazel",
 			Content: `
 load("@io_bazel_rules_closure//closure:defs.bzl", "closure_js_library")
 
 closure_js_library(
-    name = "multifile",
+    name = "existing",
     srcs = ["file1.js", "file2.js"],
+    visibility = ["//visibility:public"],
+)
+
+closure_js_library(
+    name = "existingfile3",
+    srcs = ["file3.js"],
+    visibility = ["//visibility:public"],
+)
+
+closure_js_library(
+    name = "deleted",
+    srcs = ["deleted.js"],
+    visibility = ["//visibility:public"],
+)
+
+closure_js_library(
+    name = "deleted_multifile",
+    srcs = ["deleted1.js", "deleted2.js"],
+    visibility = ["//visibility:public"],
+)
+
+closure_js_library(
+    name = "deleted_some_multifile",
+    srcs = ["file4.js", "deleted3.js"],
     visibility = ["//visibility:public"],
 )
 `,
@@ -3035,12 +3069,12 @@ closure_js_test(
 `,
 		},
 		{
-			Path: "multifile/BUILD.bazel",
+			Path: "existing/BUILD.bazel",
 			Content: `
 load("@io_bazel_rules_closure//closure:defs.bzl", "closure_js_library")
 
 closure_js_library(
-    name = "multifile",
+    name = "existing",
     srcs = [
         "file1.js",
         "file2.js",
@@ -3052,6 +3086,19 @@ closure_js_library(
         "@io_bazel_rules_closure//closure/library/string",
         "@io_bazel_rules_closure//third_party/closure/library/dojo/dom:query",
     ],
+)
+
+closure_js_library(
+    name = "existingfile3",
+    srcs = ["file3.js"],
+    visibility = ["//visibility:public"],
+    deps = ["@io_bazel_rules_closure//closure/library/array"],
+)
+
+closure_js_library(
+    name = "deleted_some_multifile",
+    srcs = ["file4.js"],
+    visibility = ["//visibility:public"],
 )
 `,
 		},

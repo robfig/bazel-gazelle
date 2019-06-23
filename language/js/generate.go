@@ -10,49 +10,89 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/rule"
 )
 
+type importInfo struct {
+	imports, deps []string
+}
+
+func newImportInfo(fi fileInfo) importInfo {
+	return importInfo{
+		imports: fi.imports,
+		deps:    fi.deps,
+	}
+}
+
 func (gl *jsLang) GenerateRules(args language.GenerateArgs) language.GenerateResult {
 	var jsc = getJsConfig(args.Config)
 
-	// Handle existing rules that include multiple files by generating our
-	// version of that same grouping.
-	type multiRule struct {
-		kind, name              string
-		srcs, provides, imports []string
-	}
-	var existingRules []*rule.Rule
+	// For each JS rule, extract info from the srcs and emit our take on it.
+	// Keep track of the src files that were covered.
+	var (
+		rules            []*rule.Rule
+		imports          []interface{}
+		empty            []*rule.Rule
+		existingRules    []*rule.Rule
+		existingRuleSrcs []string
+	)
 	if args.File != nil {
 		existingRules = args.File.Rules
 	}
-	var multiFileRules = make(map[string]*multiRule)
-	var multiFileRulesGen []*multiRule
 	for _, r := range existingRules {
 		if !isJsLibrary(r.Kind()) {
 			continue
 		}
-		srcs := r.AttrStrings("srcs")
-		if len(srcs) <= 1 {
-			continue
-		}
-		genrule := &multiRule{kind: r.Kind(), name: r.Name()}
-		for _, src := range srcs {
-			multiFileRules[src] = genrule
-			// if any of the srcs are in a sub-directory, add them to
-			// RegularFiles to be processed.
-			if strings.Contains(src, "/") {
-				args.RegularFiles = append(args.RegularFiles, src)
+
+		var srcs, requires, deps []string
+		for _, src := range r.AttrStrings("srcs") {
+			// Ignore this src if it's a label.
+			if strings.HasPrefix(src, ":") || strings.HasPrefix(src, "//") {
+				srcs = append(srcs, src)
+				continue
+			}
+
+			// Read the src and combine provides / imports.
+			var fi, ok = jsFileInfo(jsc, filepath.Join(args.Dir, src))
+			if !ok {
+				continue
+			}
+			srcs = append(srcs, src)
+
+			switch fi.ext {
+			case jsExt, jsxExt:
+				deps = append(deps, fi.deps...)
+				requires = append(requires, fi.imports...)
 			}
 		}
-		multiFileRulesGen = append(multiFileRulesGen, genrule)
+		existingRuleSrcs = append(existingRuleSrcs, srcs...)
+		if html := r.AttrString("html"); html != "" {
+			existingRuleSrcs = append(existingRuleSrcs, html)
+		}
+
+		// Emit an empty rule if none of the srcs were present.
+		if len(srcs) == 0 {
+			empty = append(empty, existingLib(r, nil))
+		} else {
+			rules = append(rules, existingLib(r, srcs))
+			imports = append(imports, importInfo{
+				imports: requires,
+				deps:    deps,
+			})
+		}
 	}
 
 	// Loop through each file in this package, read their info (what they
 	// provide & require), and generate a lib or test rule for it.
-	var rules []*rule.Rule
-	var imports []interface{}
 	var testFileInfos = make(map[string][]fileInfo)
 	sort.Strings(args.RegularFiles) // results in htmls first
 	for _, filename := range args.RegularFiles {
-		var fi = jsFileInfo(jsc, filepath.Join(args.Dir, filename))
+		// Skip any that we already processed.
+		if contains(existingRuleSrcs, filename) {
+			continue
+		}
+
+		var fi, ok = jsFileInfo(jsc, filepath.Join(args.Dir, filename))
+		if !ok {
+			continue
+		}
 		if fi.ext == unknownExt {
 			continue
 		}
@@ -65,20 +105,11 @@ func (gl *jsLang) GenerateRules(args language.GenerateArgs) language.GenerateRes
 			continue
 		}
 
-		// If this file is part of a multi-file rule, merge in its properties
-		// instead of creating a new rule.
-		if r, ok := multiFileRules[filename]; ok {
-			r.srcs = append(r.srcs, filename)
-			r.provides = append(r.provides, fi.provides...)
-			r.imports = append(r.imports, fi.imports...)
-			continue
-		}
-
 		// Create one closure_js[x]_library rule per non-test source file.
 		switch fi.ext {
 		case jsExt, jsxExt:
 			rules = append(rules, generateLib(filename))
-			imports = append(imports, fi)
+			imports = append(imports, newImportInfo(fi))
 		}
 	}
 
@@ -87,39 +118,34 @@ func (gl *jsLang) GenerateRules(args language.GenerateArgs) language.GenerateRes
 		switch len(fis) {
 		case 1:
 			rules = append(rules, generateTest(fis[0]))
-			imports = append(imports, fis[0])
+			imports = append(imports, newImportInfo(fis[0]))
 		case 2:
 			rules = append(rules, generateCombinedTest(fis[1], fis[0]))
-			imports = append(imports, fis[1])
+			imports = append(imports, newImportInfo(fis[1]))
 		default:
 			log.Println("unexpected number of test sources:", name)
 		}
 	}
 
-	// Generate the multi-file rules.
-	for _, r := range multiFileRulesGen {
-		if len(r.srcs) == 0 {
-			continue
-		}
-		rule := rule.NewRule(r.kind, r.name)
-		rule.SetAttr("srcs", r.srcs)
-		rules = append(rules, rule)
-		imports = append(imports, fileInfo{
-			name:     "rule:" + r.name,
-			provides: r.provides,
-			imports:  r.imports,
-		})
-	}
-
 	return language.GenerateResult{
 		Gen:     rules,
 		Imports: imports,
+		Empty:   empty,
 	}
 }
 
 // testBaseName trims foo_test.[js|html] => "foo"
 func testBaseName(name string) string {
 	return name[:strings.Index(name, "_test.")]
+}
+
+func existingLib(existing *rule.Rule, srcs []string) *rule.Rule {
+	r := rule.NewRule(existing.Kind(), existing.Name())
+	if len(srcs) > 0 {
+		r.SetAttr("srcs", srcs)
+	}
+	r.SetAttr("visibility", []string{"//visibility:public"})
+	return r
 }
 
 func generateLib(filename string) *rule.Rule {

@@ -3,6 +3,7 @@ package js
 import (
 	"io/ioutil"
 	"log"
+	"os"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -103,14 +104,16 @@ var (
 )
 
 // jsFileInfo returns information about a .js file.
-// If the file can't be read, an error will be logged, and partial information
-// will be returned.
-func jsFileInfo(jsc *jsConfig, path string) fileInfo {
-	info := fileNameInfo(path)
+// If the file is not found, false is returned. If there's another error reading
+// the file, an error will be logged, and partial information will be returned.
+func jsFileInfo(jsc *jsConfig, path string) (info fileInfo, ok bool) {
+	info = fileNameInfo(path)
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Printf("%s: error reading js file: %v", info.path, err)
-		return info
+		if !os.IsNotExist(err) {
+			log.Printf("%s: error reading js file: %v", info.path, err)
+		}
+		return info, false
 	}
 	for _, match := range declRegexp.FindAllSubmatch(b, -1) {
 		var (
@@ -135,7 +138,7 @@ func jsFileInfo(jsc *jsConfig, path string) fileInfo {
 			}
 		}
 	}
-	return info
+	return info, true
 }
 
 func contains(sl []string, el string) bool {
