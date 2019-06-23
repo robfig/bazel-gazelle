@@ -24,7 +24,7 @@ func (_ *jsLang) Imports(cfg *config.Config, r *rule.Rule, f *rule.File) []resol
 	var provides []resolve.ImportSpec
 	for _, src := range r.AttrStrings("srcs") {
 		srcFilename := filepath.Join(filepath.Dir(f.Path), src)
-		fi := jsFileInfo(jsc, srcFilename)
+		fi, _ := jsFileInfo(jsc, srcFilename)
 		for _, provide := range fi.provides {
 			provides = append(provides, resolve.ImportSpec{Lang: jsName, Imp: provide})
 		}
@@ -49,7 +49,7 @@ func (gl *jsLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.Remo
 		return
 	}
 
-	fi := importsRaw.(fileInfo)
+	fi := importsRaw.(importInfo)
 	r.DelAttr("deps")
 
 	var deps []string = fi.deps
