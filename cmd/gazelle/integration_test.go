@@ -2334,6 +2334,34 @@ closure_js_library(
 )
 `,
 		},
+		{
+			Path:    "map_kind/file1.js",
+			Content: `goog.module('corp.map_kind.file1');`,
+		},
+		{
+			Path:    "map_kind/file2.js",
+			Content: `goog.module('corp.map_kind.file2');`,
+		},
+		{
+			Path: "map_kind/BUILD.bazel",
+			Content: `
+load("//tools/js:defs.bzl", "closure_js_externs")
+
+# gazelle:map_kind closure_js_library closure_js_externs //tools/js:defs.bzl
+
+closure_js_externs(
+    name = "existing",
+    srcs = ["file1.js"],
+    visibility = ["//visibility:public"],
+)
+
+closure_js_externs(
+    name = "deleted",
+    srcs = ["deleted.js"],
+    visibility = ["//visibility:public"],
+)
+`,
+		},
 	}
 	dir, cleanup := testtools.CreateFiles(t, files)
 	defer cleanup()
@@ -2455,6 +2483,26 @@ closure_js_library(
 closure_js_library(
     name = "deleted_some_multifile",
     srcs = ["file4.js"],
+    visibility = ["//visibility:public"],
+)
+`,
+		},
+		{
+			Path: "map_kind/BUILD.bazel",
+			Content: `
+load("//tools/js:defs.bzl", "closure_js_externs")
+
+# gazelle:map_kind closure_js_library closure_js_externs //tools/js:defs.bzl
+
+closure_js_externs(
+    name = "existing",
+    srcs = ["file1.js"],
+    visibility = ["//visibility:public"],
+)
+
+closure_js_externs(
+    name = "file2",
+    srcs = ["file2.js"],
     visibility = ["//visibility:public"],
 )
 `,
