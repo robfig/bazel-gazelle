@@ -52,7 +52,14 @@ func (gl *jsLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.Remo
 	fi := importsRaw.(importInfo)
 	r.DelAttr("deps")
 
-	var deps []string = fi.deps
+	// Filter any deps provided by the fileinfo that refer to the same label.
+	var deps []string = fi.deps[:0]
+	var fromLabel = fmt.Sprintf("//" + from.Pkg + ":" + from.Name)
+	for _, dep := range fi.deps {
+		if dep != fromLabel {
+			deps = append(deps, dep)
+		}
+	}
 
 	// TODO: Use an in-place algorithm instead without a map
 	var depMap = make(map[string]struct{})
@@ -70,10 +77,10 @@ func (gl *jsLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.Remo
 		l = l.Rel(from.Repo, from.Pkg)
 		depMap[l.String()] = struct{}{}
 	}
-	if len(depMap) > 0 {
-		for k := range depMap {
-			deps = append(deps, k)
-		}
+	for k := range depMap {
+		deps = append(deps, k)
+	}
+	if len(deps) > 0 {
 		r.SetAttr("deps", deps)
 	}
 }
