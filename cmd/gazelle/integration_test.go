@@ -2359,6 +2359,12 @@ import (
 )
 `,
 		},
+		{
+			Path:    "js/externs/react.js",
+			Content: `/** @externs */
+
+var React = {};`,
+		},
 	}
 	dir, cleanup := testtools.CreateFiles(t, files)
 	defer cleanup()
@@ -2929,12 +2935,14 @@ goog.require('goog.string');
 			Content: `goog.module('corp.existing.file1');
 goog.require('corp.ui.widget');
 goog.require('goog.dom.query');
+const file1 = goog.require('corp.existing.file1');
 `,
 		},
 		{
 			Path: "existing/file3.js",
 			Content: `goog.module('corp.existing.file3');
 goog.require('goog.array');
+const file1 = goog.require('corp.existing.file1');
 `,
 		},
 		{
@@ -3126,7 +3134,10 @@ closure_js_library(
     name = "existingfile3",
     srcs = ["file3.js"],
     visibility = ["//visibility:public"],
-    deps = ["@io_bazel_rules_closure//closure/library/array"],
+    deps = [
+        ":existing",
+        "@io_bazel_rules_closure//closure/library/array",
+    ],
 )
 
 closure_js_library(
@@ -3165,6 +3176,18 @@ closure_js_externs(
 closure_js_externs(
     name = "file2",
     srcs = ["file2.js"],
+    visibility = ["//visibility:public"],
+)
+`,
+		},
+		{
+			Path: "js/externs/BUILD.bazel",
+			Content: `
+load("@io_bazel_rules_closure//closure:defs.bzl", "closure_js_library")
+
+closure_js_library(
+    name = "react",
+    srcs = ["react.js"],
     visibility = ["//visibility:public"],
 )
 `,
