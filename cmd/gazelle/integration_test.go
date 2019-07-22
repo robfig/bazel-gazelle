@@ -2371,10 +2371,24 @@ closure_js_externs(
 `,
 		},
 		{
-			Path:    "js/externs/react.js",
+			Path: "js/externs/react.js",
 			Content: `/** @externs */
 
 var React = {};`,
+		},
+
+		// ES6 tests
+		{
+			Path:    "es6modules/utils/display-utils.jsx",
+			Content: ``,
+		},
+		{
+			Path: "es6modules/app/fields/widget.jsx",
+			Content: `
+import { IndeterminateValue } from '../../utils/display-utils.jsx';
+const { moveItem } = goog.require('goog.array');
+goog.require('corp.i18n');
+`,
 		},
 	}
 	dir, cleanup := testtools.CreateFiles(t, files)
@@ -2546,6 +2560,36 @@ closure_js_library(
     name = "react",
     srcs = ["react.js"],
     visibility = ["//visibility:public"],
+)
+`,
+		},
+
+		{
+			Path: "es6modules/utils/BUILD.bazel",
+			Content: `
+load("@io_bazel_rules_closure//closure:defs.bzl", "closure_jsx_library")
+
+closure_jsx_library(
+    name = "display-utils",
+    srcs = ["display-utils.jsx"],
+    visibility = ["//visibility:public"],
+)
+`,
+		},
+		{
+			Path: "es6modules/app/fields/BUILD.bazel",
+			Content: `
+load("@io_bazel_rules_closure//closure:defs.bzl", "closure_jsx_library")
+
+closure_jsx_library(
+    name = "widget",
+    srcs = ["widget.jsx"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//:i18n",
+        "//es6modules/utils:display-utils",
+        "@io_bazel_rules_closure//closure/library/array",
+    ],
 )
 `,
 		},

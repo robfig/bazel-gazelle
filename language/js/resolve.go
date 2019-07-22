@@ -24,10 +24,21 @@ func (_ *jsLang) Imports(cfg *config.Config, r *rule.Rule, f *rule.File) []resol
 	var provides []resolve.ImportSpec
 	for _, src := range r.AttrStrings("srcs") {
 		srcFilename := filepath.Join(filepath.Dir(f.Path), src)
-		fi, _ := jsFileInfo(jsc, srcFilename)
+		fi, _ := jsFileInfo(cfg.RepoRoot, jsc, srcFilename)
 		for _, provide := range fi.provides {
 			provides = append(provides, resolve.ImportSpec{Lang: jsName, Imp: provide})
 		}
+		// Each file implicitly provies an ES6 module whose name is relative to
+		// the repo root.
+		moduleName, err := filepath.Rel(cfg.RepoRoot, srcFilename)
+		if err != nil {
+			log.Printf("error resolving module for source %v: %v", srcFilename, err)
+			continue
+		}
+		provides = append(provides, resolve.ImportSpec{
+			Lang: jsName,
+			Imp:  es6ImportPrefix + "/" + moduleName,
+		})
 	}
 
 	if verbose {
