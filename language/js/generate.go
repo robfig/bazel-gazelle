@@ -59,7 +59,7 @@ func (gl *jsLang) GenerateRules(args language.GenerateArgs) language.GenerateRes
 			}
 
 			// Read the src and combine provides / imports.
-			var fi, ok = jsFileInfo(jsc, filepath.Join(args.Dir, src))
+			var fi, ok = jsFileInfo(args.Config.RepoRoot, jsc, filepath.Join(args.Dir, src))
 			if !ok {
 				continue
 			}
@@ -98,7 +98,7 @@ func (gl *jsLang) GenerateRules(args language.GenerateArgs) language.GenerateRes
 			continue
 		}
 
-		var fi, ok = jsFileInfo(jsc, filepath.Join(args.Dir, filename))
+		var fi, ok = jsFileInfo(args.Config.RepoRoot, jsc, filepath.Join(args.Dir, filename))
 		if !ok {
 			continue
 		}

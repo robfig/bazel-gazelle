@@ -92,8 +92,9 @@ func fileNameInfo(path_ string) fileInfo {
 	}
 }
 
-// TODO: handle goog.module.get()
-// TODO: handle ES6 modules
+const (
+	es6ImportPrefix = "es6:"
+)
 
 var (
 	closureLibraryRepo = `com_google_javascript_closure_library`
@@ -101,12 +102,18 @@ var (
 	declRegexp = regexp.MustCompile(`(?m)^(?:(?:const|var) .* = )?goog\.(require|provide|module)\(['"]([^'"]+)`)
 
 	testonlyRegexp = regexp.MustCompile(`^goog\.setTestOnly\(`)
+
+	// NOTE: there are 3 different syntaxes for our purposes:
+	// import [MULTILINE STUFF] from "module-name";
+	// import "module-name";
+	// var promise = import("module-name");  // NOT SUPPORTED
+	es6ImportRegexp = regexp.MustCompile(`(?m)^import (?:[^;]*? from )['"]([^'"]+)['"];`)
 )
 
 // jsFileInfo returns information about a .js file.
 // If the file is not found, false is returned. If there's another error reading
 // the file, an error will be logged, and partial information will be returned.
-func jsFileInfo(jsc *jsConfig, path string) (info fileInfo, ok bool) {
+func jsFileInfo(repoRoot string, jsc *jsConfig, path string) (info fileInfo, ok bool) {
 	info = fileNameInfo(path)
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -129,6 +136,22 @@ func jsFileInfo(jsc *jsConfig, path string) (info fileInfo, ok bool) {
 		default:
 			panic("unhandled declType: " + declType)
 		}
+	}
+	for _, match := range es6ImportRegexp.FindAllSubmatch(b, -1) {
+		var (
+			moduleName = string(match[1])
+		)
+		// moduleName is relative if it starts with '.'
+		// Resolve it to the absolute path, relative to the repo, starting with slash.
+		if strings.HasPrefix(moduleName, ".") {
+			resolvedModule, err := filepath.Rel(repoRoot, filepath.Join(filepath.Dir(path), moduleName))
+			if err != nil {
+				log.Println("error resolving module import", moduleName, ":", err)
+				continue
+			}
+			moduleName = "/" + resolvedModule
+		}
+		info.imports = append(info.imports, es6ImportPrefix+moduleName)
 	}
 	info.isTestOnly = testonlyRegexp.Match(b)
 	for _, ge := range jsc.grepExterns {

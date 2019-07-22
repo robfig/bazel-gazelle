@@ -109,6 +109,30 @@ goog.require('goog.i18n.messageformat');
 				ext:      jsExt,
 			},
 		},
+		{
+			"es6modules",
+			"path/to/app/ListEdit.jsx",
+			`import {
+  listDataShape,
+} from '../../shapes.js';
+import { IndeterminateValue } from '../../utils/display-utils.jsx';
+import { FieldErrors } from '../../field-row/FieldErrors.jsx';
+
+const { moveItem } = goog.require('goog.array');
+goog.require('corp.i18n');
+`,
+			fileInfo{
+				provides: nil,
+				imports: []string{
+					"goog.array",
+					"corp.i18n",
+					"es6:/path/shapes.js",
+					"es6:/path/utils/display-utils.jsx",
+					"es6:/path/field-row/FieldErrors.jsx",
+				},
+				ext: jsxExt,
+			},
+		},
 	} {
 		t.Run(tc.desc, func(t *testing.T) {
 			dir, err := ioutil.TempDir(os.Getenv("TEST_TEMPDIR"), "TestJsFileInfo")
@@ -117,12 +141,13 @@ goog.require('goog.i18n.messageformat');
 			}
 			defer os.RemoveAll(dir)
 			path := filepath.Join(dir, tc.name)
+			os.MkdirAll(filepath.Dir(path), 0777)
 			if err := ioutil.WriteFile(path, []byte(tc.source), 0600); err != nil {
 				t.Fatal(err)
 			}
 
 			var jsc jsConfig
-			got, _ := jsFileInfo(&jsc, path)
+			got, _ := jsFileInfo(dir, &jsc, path)
 			// Clear fields we don't care about for testing.
 			got = fileInfo{
 				provides: got.provides,
