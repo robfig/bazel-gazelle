@@ -2371,9 +2371,17 @@ closure_js_externs(
 `,
 		},
 		{
+			Path: "js/bugs/dupe_dep_not_caused_by_grep_extern_and_requires.js",
+			Content: `
+goog.require('React');
+
+React.renderElement();
+`,
+		},
+		{
 			Path: "js/externs/react.js",
 			Content: `/** @externs */
-
+goog.provide('React');
 var React = {};`,
 		},
 
@@ -2560,6 +2568,20 @@ closure_js_library(
     name = "react",
     srcs = ["react.js"],
     visibility = ["//visibility:public"],
+)
+`,
+		},
+
+		{
+			Path: "js/bugs/BUILD.bazel",
+			Content: `
+load("@io_bazel_rules_closure//closure:defs.bzl", "closure_js_library")
+
+closure_js_library(
+    name = "dupe_dep_not_caused_by_grep_extern_and_requires",
+    srcs = ["dupe_dep_not_caused_by_grep_extern_and_requires.js"],
+    visibility = ["//visibility:public"],
+    deps = ["//js/externs:react"],
 )
 `,
 		},
