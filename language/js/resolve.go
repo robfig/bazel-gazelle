@@ -88,6 +88,12 @@ func (gl *jsLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.Remo
 		l = l.Rel(from.Repo, from.Pkg)
 		depMap[l.String()] = struct{}{}
 	}
+	// Avoid dupe deps
+	for _, dep := range deps {
+		if _, ok := depMap[dep]; ok {
+			delete(depMap, dep)
+		}
+	}
 	for k := range depMap {
 		deps = append(deps, k)
 	}
