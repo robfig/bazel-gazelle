@@ -74,10 +74,15 @@ goog.require('corp');`,
 goog.require('corp');
 const str = goog.require('corp.string');
 var dom = goog.require('corp.dom');
+const {
+  foo,
+  bar
+} = goog.require('corp.widgets');
+
 `,
 			fileInfo{
 				provides: []string{"corp.foo"},
-				imports:  []string{"corp", "corp.string", "corp.dom"},
+				imports:  []string{"corp", "corp.string", "corp.dom", "corp.widgets"},
 				ext:      jsExt,
 				isModule: true,
 			},
