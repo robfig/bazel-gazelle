@@ -137,6 +137,21 @@ func jsFileInfo(repoRoot string, jsc *jsConfig, path string) (info fileInfo, ok 
 			panic("unhandled declType: " + declType)
 		}
 	}
+
+	// If this file declares neither goog.provide nor goog.module, treat it as
+	// providing its relative path as a ES6 module.
+	// For example: ["/path/to/file.jsx", "/path/to/file"]
+	if len(info.provides) == 0 {
+		relPath, err := filepath.Rel(repoRoot, path)
+		if err != nil {
+			log.Println("error resolving module name:", err)
+		} else {
+			info.provides = append(info.provides,
+				"es6:/"+relPath,
+				"es6:/"+relPath[:len(relPath)-len(filepath.Ext(relPath))])
+		}
+	}
+
 	for _, match := range es6ImportRegexp.FindAllSubmatch(b, -1) {
 		var (
 			moduleName = string(match[1])
