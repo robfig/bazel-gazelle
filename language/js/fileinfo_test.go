@@ -19,7 +19,7 @@ func TestJsFileInfo(t *testing.T) {
 			"",
 			fileInfo{
 				imports:  nil,
-				provides: nil,
+				provides: []string{"es6:/foo.js", "es6:/foo"},
 				ext:      jsExt,
 			},
 		},
@@ -127,7 +127,10 @@ const { moveItem } = goog.require('goog.array');
 goog.require('corp.i18n');
 `,
 			fileInfo{
-				provides: nil,
+				provides: []string{
+					"es6:/path/to/app/ListEdit.jsx",
+					"es6:/path/to/app/ListEdit",
+				},
 				imports: []string{
 					"goog.array",
 					"corp.i18n",
