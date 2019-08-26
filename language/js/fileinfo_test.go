@@ -18,9 +18,10 @@ func TestJsFileInfo(t *testing.T) {
 			"foo.js",
 			"",
 			fileInfo{
-				imports:  nil,
-				provides: []string{"es6:/foo.js", "es6:/foo"},
-				ext:      jsExt,
+				imports:    nil,
+				provides:   []string{"/foo"},
+				ext:        jsExt,
+				moduleType: moduleTypeES6,
 			},
 		},
 		{
@@ -28,9 +29,10 @@ func TestJsFileInfo(t *testing.T) {
 			"foo.js",
 			"goog.provide('corp.foo');",
 			fileInfo{
-				imports:  nil,
-				provides: []string{"corp.foo"},
-				ext:      jsExt,
+				imports:    nil,
+				provides:   []string{"corp.foo"},
+				ext:        jsExt,
+				moduleType: moduleTypeGoogProvide,
 			},
 		},
 		{
@@ -40,9 +42,10 @@ func TestJsFileInfo(t *testing.T) {
 goog.provide('corp.foo2');
 `,
 			fileInfo{
-				imports:  nil,
-				provides: []string{"corp.foo", "corp.foo2"},
-				ext:      jsExt,
+				imports:    nil,
+				provides:   []string{"corp.foo", "corp.foo2"},
+				ext:        jsExt,
+				moduleType: moduleTypeGoogProvide,
 			},
 		},
 		{
@@ -50,9 +53,9 @@ goog.provide('corp.foo2');
 			"foo.jsx",
 			"goog.module('corp.foo');",
 			fileInfo{
-				provides: []string{"corp.foo"},
-				ext:      jsxExt,
-				isModule: true,
+				provides:   []string{"corp.foo"},
+				ext:        jsxExt,
+				moduleType: moduleTypeGoogModule,
 			},
 		},
 		{
@@ -61,9 +64,10 @@ goog.provide('corp.foo2');
 			`goog.provide('corp.foo');
 goog.require('corp');`,
 			fileInfo{
-				imports:  []string{"corp"},
-				provides: []string{"corp.foo"},
-				ext:      jsExt,
+				imports:    []string{"corp"},
+				provides:   []string{"corp.foo"},
+				ext:        jsExt,
+				moduleType: moduleTypeGoogProvide,
 			},
 		},
 		{
@@ -81,10 +85,10 @@ const {
 
 `,
 			fileInfo{
-				provides: []string{"corp.foo"},
-				imports:  []string{"corp", "corp.string", "corp.dom", "corp.widgets"},
-				ext:      jsExt,
-				isModule: true,
+				provides:   []string{"corp.foo"},
+				imports:    []string{"corp", "corp.string", "corp.dom", "corp.widgets"},
+				ext:        jsExt,
+				moduleType: moduleTypeGoogModule,
 			},
 		},
 		{
@@ -92,10 +96,10 @@ const {
 			"foo_test.js",
 			`goog.module('corp.foo')`,
 			fileInfo{
-				provides: []string{"corp.foo"},
-				ext:      jsExt,
-				isTest:   true,
-				isModule: true,
+				provides:   []string{"corp.foo"},
+				ext:        jsExt,
+				isTest:     true,
+				moduleType: moduleTypeGoogModule,
 			},
 		},
 		{
@@ -109,9 +113,10 @@ goog.require('goog.strings');
 goog.require('goog.i18n.messageformat');
 `,
 			fileInfo{
-				provides: []string{"corp.i18n", "corp.msg"},
-				imports:  []string{"corp", "goog.strings", "goog.i18n.messageformat"},
-				ext:      jsExt,
+				provides:   []string{"corp.i18n", "corp.msg"},
+				imports:    []string{"corp", "goog.strings", "goog.i18n.messageformat"},
+				ext:        jsExt,
+				moduleType: moduleTypeGoogProvide,
 			},
 		},
 		{
@@ -119,24 +124,23 @@ goog.require('goog.i18n.messageformat');
 			"path/to/app/ListEdit.jsx",
 			`import {
   listDataShape,
-} from '../../shapes.js';
-import { IndeterminateValue } from '../../utils/display-utils.jsx';
-import { FieldErrors } from '../../field-row/FieldErrors.jsx';
+} from '../../shapes';
+import { IndeterminateValue } from '../../utils/display-utils';
+import { FieldErrors } from '../../field-row/FieldErrors';
 
 const { moveItem } = goog.require('goog.array');
 goog.require('corp.i18n');
 `,
 			fileInfo{
 				provides: []string{
-					"es6:/path/to/app/ListEdit.jsx",
-					"es6:/path/to/app/ListEdit",
+					"/path/to/app/ListEdit",
 				},
 				imports: []string{
 					"goog.array",
 					"corp.i18n",
-					"es6:/path/shapes.js",
-					"es6:/path/utils/display-utils.jsx",
-					"es6:/path/field-row/FieldErrors.jsx",
+					"/path/shapes",
+					"/path/utils/display-utils",
+					"/path/field-row/FieldErrors",
 				},
 				ext: jsxExt,
 			},
@@ -158,11 +162,11 @@ goog.require('corp.i18n');
 			got, _ := jsFileInfo(dir, &jsc, path)
 			// Clear fields we don't care about for testing.
 			got = fileInfo{
-				provides: got.provides,
-				isTest:   got.isTest,
-				isModule: got.isModule,
-				imports:  got.imports,
-				ext:      got.ext,
+				provides:   got.provides,
+				isTest:     got.isTest,
+				moduleType: got.moduleType,
+				imports:    got.imports,
+				ext:        got.ext,
 			}
 
 			if !reflect.DeepEqual(got, tc.want) {

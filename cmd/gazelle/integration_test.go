@@ -2393,9 +2393,17 @@ var React = {};`,
 		{
 			Path: "es6modules/app/fields/widget.jsx",
 			Content: `
-import { IndeterminateValue } from '../../utils/display-utils.jsx';
+import { IndeterminateValue } from '../../utils/display-utils';
 const { moveItem } = goog.require('goog.array');
 goog.require('corp.i18n');
+
+export default Widget = {};
+`,
+		},
+		{
+			Path: "es6modules/app/fields/widget_test.jsx",
+			Content: `
+import { Widget } from '/es6modules/app/fields/widget';
 `,
 		},
 	}
@@ -2601,7 +2609,7 @@ closure_jsx_library(
 		{
 			Path: "es6modules/app/fields/BUILD.bazel",
 			Content: `
-load("@io_bazel_rules_closure//closure:defs.bzl", "closure_jsx_library")
+load("@io_bazel_rules_closure//closure:defs.bzl", "closure_jsx_library", "closure_jsx_test")
 
 closure_jsx_library(
     name = "widget",
@@ -2612,6 +2620,15 @@ closure_jsx_library(
         "//es6modules/utils:display-utils",
         "@io_bazel_rules_closure//closure/library/array",
     ],
+)
+
+closure_jsx_test(
+    name = "widget_test",
+    srcs = ["widget_test.jsx"],
+    compilation_level = "ADVANCED",
+    entry_points = ["/es6modules/app/fields/widget_test"],
+    visibility = ["//visibility:public"],
+    deps = [":widget"],
 )
 `,
 		},

@@ -30,9 +30,8 @@ type fileInfo struct {
 	// isTestOnly is true if the file contains a goog.setTestOnly declaration.
 	isTestOnly bool
 
-	// isModule is true if this file provides via goog.module instead of
-	// goog.provide.
-	isModule bool
+	// moduleType describes the module system used by this file.
+	moduleType moduleType
 
 	// imports is a list of identifiers imported by a file.
 	imports []string
@@ -41,6 +40,14 @@ type fileInfo struct {
 	// these are from directives, bypassing the imports -> resolve flow.
 	deps []string
 }
+
+type moduleType int
+
+const (
+	moduleTypeES6 moduleType = iota
+	moduleTypeGoogProvide
+	moduleTypeGoogModule
+)
 
 // ext indicates how a file should be treated, based on extension.
 type ext int
@@ -85,16 +92,13 @@ func fileNameInfo(path_ string) fileInfo {
 	}
 
 	return fileInfo{
-		path:   path_,
-		name:   name,
-		ext:    ext,
-		isTest: isTest,
+		path:       path_,
+		name:       name,
+		ext:        ext,
+		isTest:     isTest,
+		moduleType: moduleTypeES6,
 	}
 }
-
-const (
-	es6ImportPrefix = "es6:"
-)
 
 var (
 	closureLibraryRepo = `com_google_javascript_closure_library`
@@ -128,8 +132,11 @@ func jsFileInfo(repoRoot string, jsc *jsConfig, path string) (info fileInfo, ok 
 			identifier = string(match[2])
 		)
 		switch declType {
-		case "provide", "module":
-			info.isModule = declType == "module"
+		case "provide":
+			info.moduleType = moduleTypeGoogProvide
+			info.provides = append(info.provides, identifier)
+		case "module":
+			info.moduleType = moduleTypeGoogModule
 			info.provides = append(info.provides, identifier)
 		case "require":
 			info.imports = append(info.imports, identifier)
@@ -139,16 +146,15 @@ func jsFileInfo(repoRoot string, jsc *jsConfig, path string) (info fileInfo, ok 
 	}
 
 	// If this file declares neither goog.provide nor goog.module, treat it as
-	// providing its relative path as a ES6 module.
-	// For example: ["/path/to/file.jsx", "/path/to/file"]
-	if len(info.provides) == 0 {
+	// providing its path as a workspace-relative, extensionless ES6 module.
+	// For example: ["/path/to/file"]
+	if info.moduleType == moduleTypeES6 {
 		relPath, err := filepath.Rel(repoRoot, path)
 		if err != nil {
 			log.Println("error resolving module name:", err)
 		} else {
 			info.provides = append(info.provides,
-				"es6:/"+relPath,
-				"es6:/"+relPath[:len(relPath)-len(filepath.Ext(relPath))])
+				"/"+relPath[:len(relPath)-len(filepath.Ext(relPath))])
 		}
 	}
 
@@ -166,7 +172,7 @@ func jsFileInfo(repoRoot string, jsc *jsConfig, path string) (info fileInfo, ok 
 			}
 			moduleName = "/" + resolvedModule
 		}
-		info.imports = append(info.imports, es6ImportPrefix+moduleName)
+		info.imports = append(info.imports, moduleName)
 	}
 	info.isTestOnly = testonlyRegexp.Match(b)
 	for _, ge := range jsc.grepExterns {
