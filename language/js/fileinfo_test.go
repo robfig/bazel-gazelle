@@ -82,11 +82,13 @@ const {
   foo,
   bar
 } = goog.require('corp.widgets');
+const {A, B, C} =
+  goog.require('corp.D');
 
 `,
 			fileInfo{
 				provides:   []string{"corp.foo"},
-				imports:    []string{"corp", "corp.string", "corp.dom", "corp.widgets"},
+				imports:    []string{"corp", "corp.string", "corp.dom", "corp.widgets", "corp.D"},
 				ext:        jsExt,
 				moduleType: moduleTypeGoogModule,
 			},
