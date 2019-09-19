@@ -103,7 +103,7 @@ func fileNameInfo(path_ string) fileInfo {
 var (
 	closureLibraryRepo = `com_google_javascript_closure_library`
 
-	declRegexp = regexp.MustCompile(`(?m)^(?:(?:const|var) [^;]*? = )?goog\.(require|provide|module)\(['"]([^'"]+)`)
+	declRegexp = regexp.MustCompile(`(?m)^(?:(?:const|var) [^;]*?\s*=\s*)?goog\.(require|provide|module)\(['"]([^'"]+)`)
 
 	testonlyRegexp = regexp.MustCompile(`^goog\.setTestOnly\(`)
 
