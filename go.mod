@@ -9,6 +9,7 @@ require (
 	github.com/bmatcuk/doublestar v1.2.2
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.4.7
+	github.com/karrick/godirwalk v1.15.6
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/pelletier/go-toml v1.2.0
 	github.com/pmezard/go-difflib v1.0.0

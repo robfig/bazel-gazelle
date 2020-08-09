@@ -142,6 +142,14 @@ def gazelle_dependencies(
         version = "v1.2.2",
     )
 
+    _maybe(
+        go_repository,
+        name = "com_github_karrick_godirwalk",
+        importpath = "github.com/karrick/godirwalk",
+        sum = "h1:Yf2mmR8TJy+8Fa0SuQVto5SYap6IF7lNVX4Jdl8G1qA=",
+        version = "v1.15.6",
+    )
+
 def _maybe(repo_rule, name, **kwargs):
     if name not in native.existing_rules():
         repo_rule(name = name, **kwargs)
